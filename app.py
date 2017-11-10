@@ -47,7 +47,7 @@ bot.add_menu_action('vegetarian', ['vegetarian', 'today'])
 
 app = Flask(__name__)
 app.debug = True
-app.config['SHELVE_FILENAME'] = 'shelve.db'
+app.config['SHELVE_FILENAME'] = '/tmp/shelve.db'
 shelve.init_app(app)
 
 
