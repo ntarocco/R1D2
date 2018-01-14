@@ -1,5 +1,6 @@
 import datetime as dt
 import itertools as it
+from threading import Thread
 
 
 def grouper(iterable, n, fillvalue=None):
@@ -14,3 +15,11 @@ def today():
 def first_day_of_this_week():
     t = today()
     return t - dt.timedelta(days=t.weekday())
+
+
+def threaded(fn):
+    def wrapper(*args, **kwargs):
+        thread = Thread(target=fn, args=args, kwargs=kwargs)
+        thread.start()
+        return thread
+    return wrapper

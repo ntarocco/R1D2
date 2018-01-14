@@ -10,4 +10,4 @@ COPY . /app
 
 EXPOSE 8000
 
-ENTRYPOINT ["/usr/local/bin/gunicorn", "-b", ":8000", "--log-level", "debug", "--timeout", "120", "--graceful-timeout", "60", "app:app"]
+ENTRYPOINT ["/usr/local/bin/gunicorn", "-b", ":8000", "--timeout", "120", "--graceful-timeout", "60", "app:app"]

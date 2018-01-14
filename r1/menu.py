@@ -1,5 +1,5 @@
-from datetime import timedelta
 import bs4
+from datetime import timedelta
 import itertools as it
 import re
 import requests
@@ -47,6 +47,10 @@ def fetch_menu(restaurant):
     url1, url2 = get_urls(restaurant)
     params = PARAMS[restaurant]
     s = requests.Session()
+
+    print("Calling urls %s" % url1)
+    print("Calling urls %s" % url2)
+
     return it.chain([extract_table(s.get(url1))] +
                     [extract_table(s.post(url2,
                                           data=create_payload(i)))
@@ -55,12 +59,17 @@ def fetch_menu(restaurant):
 
 def split_days(items, structure):
     xs = [grouper(i, n) for i, n in zip(items, structure)]
-    return [list(it.chain(*i)) for i in zip(*xs)]
+    result = [list(it.chain(*i)) for i in zip(*xs)]
+    return result
 
 
 def get_menu(restaurant):
+    print("fetching menu restaurant %s" % restaurant)
     params = PARAMS[restaurant]
     items = split_days(fetch_menu(restaurant), params['page_structure'])
+
+    print("menu restaurant %s fetched!" % restaurant)
+
     day_structure = params['dishes']
     first_day = first_day_of_this_week()
     menu = []

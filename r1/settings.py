@@ -3,7 +3,7 @@ from .types import (DishType, Restaurant)
 
 BASE = 'http://extranet.novae-restauration.ch/'
 URL1 = BASE + 'index.php?frame=1&x={x}&y={y}&z={z}'
-URL2 = BASE + '/novae/traiteur/restauration/{html}.html?frame=1'
+URL2 = BASE + 'novae/traiteur/restauration/{html}.html?frame=1'
 PARAMS = {
     Restaurant.r1: {
         'x': 'd894ddae3c17b40b4fe7e16519f950f0',

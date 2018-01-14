@@ -1,40 +1,47 @@
-import r1
-from r1.helpers import first_day_of_this_week
-from r1.filter import (filter_menu, make_filter)
-
-from bot import RestaurantBot
-
-from flask import (
-    Flask,
-    g,
-    jsonify,
-    request
-)
-from flask_cors import CORS, cross_origin
-from flask.ext import shelve
-from functools import partial
+import atexit
+from datetime import datetime, timedelta
 from os import getenv
 
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+from flask import Flask, jsonify, request
+from flask_cors import cross_origin
+
+from bot import RestaurantBot
+from cache import MemoryCache
+import r1
+from r1.filter import filter_menu, make_filter
+from r1.helpers import threaded
+
 TELEGRAM_BOT_TOKEN = getenv('TELEGRAM_BOT_TOKEN')
-
-
-def load_menu():
-    db = shelve.get_shelve()
-    fd = first_day_of_this_week()
-    day = db.get('day', None)
-    if day is None or day != fd:
-        db['menu'] = r1.get_full_menu()
-        db['day'] = fd
-    return db['menu']
+CACHE_TIME = timedelta(hours=2)
 
 
 def get_menu():
-    d = g.get('day', None)
-    fd = first_day_of_this_week()
-    if d is None or d != fd:
-        g.menu = load_menu()
-        g.day = d
-    return g.menu
+    if 'menu' not in cache:
+        _get_full_menu()
+
+    _refresh_menu()
+
+    return cache.get('menu')
+
+
+@threaded
+def _refresh_menu():
+    if _cache_expired():
+        print("cache expired")
+        _get_full_menu()
+    else:
+        print("cache still valid")
+
+
+def _cache_expired():
+    return 'last_fetched' not in cache or datetime.now() - cache.get('last_fetched') > CACHE_TIME
+
+
+def _get_full_menu():
+    cache.set('menu', r1.get_full_menu())
+    cache.set('last_fetched', datetime.now())
 
 
 bot = RestaurantBot(get_menu)
@@ -46,9 +53,23 @@ bot.add_menu_action('tomorrow', ['tomorrow'])
 bot.add_menu_action('vegetarian', ['vegetarian', 'today'])
 
 app = Flask(__name__)
-app.debug = True
-app.config['SHELVE_FILENAME'] = '/tmp/shelve.db'
-shelve.init_app(app)
+cache = MemoryCache()
+
+
+def refresh():
+    print("/refresh called")
+    _get_full_menu()
+
+
+scheduler = BackgroundScheduler()
+scheduler.start()
+scheduler.add_job(
+    func=refresh,
+    trigger=IntervalTrigger(hours=1),
+    id='refresh_job',
+    replace_existing=True)
+# Shut down the scheduler when exiting the app
+atexit.register(lambda: scheduler.shutdown())
 
 
 @app.route('/telegram/{}/'.format(TELEGRAM_BOT_TOKEN), methods=['POST'])
@@ -73,4 +94,4 @@ def index():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
