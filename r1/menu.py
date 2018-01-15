@@ -4,14 +4,15 @@ import itertools as it
 import re
 import requests
 
-from .helpers import (first_day_of_this_week, grouper, today)
-from .settings import (PARAMS, URL1, URL2)
-from .types import (DishType, MenuItem, Restaurant)
+from logger import logger
+from .helpers import first_day_of_this_week, grouper, today
+from .settings import PARAMS, URL1, URL2
+from .types import MenuItem, Restaurant
 
 
 def get_urls(restaurant):
     params = PARAMS[restaurant]
-    return (URL1.format(**params), URL2.format(**params))
+    return URL1.format(**params), URL2.format(**params)
 
 
 def extract_name(bsitem):
@@ -31,7 +32,9 @@ def extract_table(response):
         'table',
         class_='menuRestaurant').findAll('table',
                                          class_='HauteurMenu')
-    return [(extract_name(i), extract_price(i)) for i in items[1::2]]
+    result = [(extract_name(i), extract_price(i)) for i in items[1::2]]
+    logger.debug(result)
+    return result
 
 
 def create_payload(page):
@@ -48,9 +51,6 @@ def fetch_menu(restaurant):
     params = PARAMS[restaurant]
     s = requests.Session()
 
-    print("Calling urls %s" % url1)
-    print("Calling urls %s" % url2)
-
     return it.chain([extract_table(s.get(url1))] +
                     [extract_table(s.post(url2,
                                           data=create_payload(i)))
@@ -64,11 +64,9 @@ def split_days(items, structure):
 
 
 def get_menu(restaurant):
-    print("fetching menu restaurant %s" % restaurant)
+    logger.info("fetching menu restaurant %s" % restaurant)
     params = PARAMS[restaurant]
     items = split_days(fetch_menu(restaurant), params['page_structure'])
-
-    print("menu restaurant %s fetched!" % restaurant)
 
     day_structure = params['dishes']
     first_day = first_day_of_this_week()
@@ -76,8 +74,11 @@ def get_menu(restaurant):
     for d, ms in enumerate(items):
         day = first_day + timedelta(days=d)
         for (name, price), t in zip(ms, day_structure):
-            menu.append(MenuItem(restaurant, day, t, name, price,
-                                 params['currency']))
+            m = MenuItem(restaurant, day, t, name, price, params['currency'])
+            logger.info(m)
+            menu.append(m)
+
+    logger.info("menu restaurant %s fetched!" % restaurant)
     return menu
 
 

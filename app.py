@@ -9,6 +9,7 @@ from flask_cors import cross_origin
 
 from bot import RestaurantBot
 from cache import MemoryCache
+from logger import logger
 import r1
 from r1.filter import filter_menu, make_filter
 from r1.helpers import threaded
@@ -29,10 +30,7 @@ def get_menu():
 @threaded
 def _refresh_menu():
     if _cache_expired():
-        print("cache expired")
         _get_full_menu()
-    else:
-        print("cache still valid")
 
 
 def _cache_expired():
@@ -57,7 +55,7 @@ cache = MemoryCache()
 
 
 def refresh():
-    print("/refresh called")
+    logger.info("/refresh called")
     _get_full_menu()
 
 
@@ -83,6 +81,7 @@ def handle_telegram():
 @app.route('/<path:path>')
 @cross_origin()
 def json_menu(path):
+    logger.info("getting menu for %s" % path)
     filter_ = make_filter(path.split('/'))
     menu = filter_menu(get_menu(), filter_)
     return jsonify(menu=r1.serialize_menu(menu))

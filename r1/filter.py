@@ -1,6 +1,7 @@
 import datetime as dt
 import functools as ft
 
+from logger import logger
 from .helpers import (first_day_of_this_week, today)
 from .types import (DishType, Restaurant)
 
@@ -14,7 +15,9 @@ def item_filter(attr, value):
         return void_filter
 
     def item_filter_impl(menu_item):
-        return getattr(menu_item, attr) == value
+        result = getattr(menu_item, attr) == value
+        logger.debug('Filtering `%s` for attr `%s` with value `%s`. Result: `%s`' % (menu_item, attr, value, result))
+        return result
 
     return item_filter_impl
 
